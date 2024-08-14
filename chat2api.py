@@ -60,10 +60,17 @@ async def to_send_conversation(request_data, req_token):
 
 async def process(request_data, req_token):
     chat_service = await to_send_conversation(request_data, req_token)
-    await chat_service.prepare_send_conversation()
-    res = await chat_service.send_conversation()
-    return chat_service, res
-
+    try:
+        await chat_service.prepare_send_conversation()
+        res = await chat_service.send_conversation()
+        return chat_service, res
+    except HTTPException as e:
+        await chat_service.close_client()
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        await chat_service.close_client()
+        logger.error(f"Server error, {str(e)}")
+        raise HTTPException(status_code=500, detail="Server error")
 
 @app.post(f"/{api_prefix}/v1/chat/completions" if api_prefix else "/v1/chat/completions")
 async def send_conversation(request: Request, req_token: str = Depends(oauth2_scheme)):
