@@ -462,7 +462,7 @@ def get_answer_token(seed, diff, config):
     return "gAAAAAB" + answer, solved
 
 
-def generate_answer(seed, diff, config, timeout_seconds=1):
+def generate_answer(seed, diff, config, timeout_seconds=1.5):
     # 记录开始时间
     start_time = time.time()
 
@@ -511,7 +511,7 @@ if __name__ == "__main__":
     cached_time = int(time.time())
     for i in range(10):
         seed = format(random.random())
-        diff = "0001ed"
+        diff = "0001b8"
         config = get_config("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome")
         answer = get_answer_token(seed, diff, config)
     # cached_scripts.append(
