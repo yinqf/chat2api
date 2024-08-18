@@ -462,33 +462,39 @@ def get_answer_token(seed, diff, config):
     return "gAAAAAB" + answer, solved
 
 
-def generate_answer(seed, diff, config, timeout_seconds=2):
+def generate_answer(seed, diff, config, timeout_seconds=1):
     # 记录开始时间
     start_time = time.time()
 
+    # 预处理静态部分
     diff_len = len(diff)
     seed_encoded = seed.encode()
     static_config_part1 = (json.dumps(config[:3], separators=(',', ':'), ensure_ascii=False)[:-1] + ',').encode()
     static_config_part2 = (',' + json.dumps(config[4:9], separators=(',', ':'), ensure_ascii=False)[1:-1] + ',').encode()
     static_config_part3 = (',' + json.dumps(config[10:], separators=(',', ':'), ensure_ascii=False)[1:]).encode()
-
     target_diff = bytes.fromhex(diff)
 
     # 设置默认返回值
     default_result = "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + pybase64.b64encode(f'"{seed}"'.encode()).decode(), False
 
     for i in range(500000):
-        # 检查是否超过超时时间
-        if i % 100 == 0 and time.time() - start_time > timeout_seconds:
-            logger.info(f"generate_answer: operation timed out after {timeout_seconds} seconds.")
-            return default_result
+        if i % 500 == 0:
+            # 每500次检查一次时间
+            elapsed_time = time.time() - start_time
+            if elapsed_time > timeout_seconds:
+                logger.info(f"generate_answer: operation timed out after {timeout_seconds} seconds.")
+                return default_result
 
+        # 准备动态部分
         dynamic_json_i = str(i).encode()
         dynamic_json_j = str(i >> 1).encode()
         final_json_bytes = static_config_part1 + dynamic_json_i + static_config_part2 + dynamic_json_j + static_config_part3
+
+        # 计算哈希
         base_encode = pybase64.b64encode(final_json_bytes)
         hash_value = hashlib.sha3_512(seed_encoded + base_encode).digest()
         if hash_value[:diff_len] <= target_diff:
+            logger.info(f"generate_answer_num:  {i} ")
             return base_encode.decode(), True
 
     return default_result
@@ -500,17 +506,17 @@ def get_requirements_token(config):
 
 
 if __name__ == "__main__":
-    # cached_scripts.append(
-    #     "https://cdn.oaistatic.com/_next/static/cXh69klOLzS0Gy2joLDRS/_ssgManifest.js?dpl=453ebaec0d44c2decab71692e1bfe39be35a24b3")
-    # cached_dpl = "453ebaec0d44c2decab71692e1bfe39be35a24b3"
-    # cached_time = int(time.time())
-    # for i in range(10):
-    #     seed = format(random.random())
-    #     diff = "000032"
-    #     config = get_config("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome")
-    #     answer = get_answer_token(seed, diff, config)
     cached_scripts.append(
         "https://cdn.oaistatic.com/_next/static/cXh69klOLzS0Gy2joLDRS/_ssgManifest.js?dpl=453ebaec0d44c2decab71692e1bfe39be35a24b3")
-    cached_dpl = "dpl=453ebaec0d44c2decab71692e1bfe39be35a24b3"
-    config = get_config("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36")
-    get_requirements_token(config)
+    cached_dpl = "453ebaec0d44c2decab71692e1bfe39be35a24b3"
+    cached_time = int(time.time())
+    for i in range(10):
+        seed = format(random.random())
+        diff = "0001ed"
+        config = get_config("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome")
+        answer = get_answer_token(seed, diff, config)
+    # cached_scripts.append(
+    #     "https://cdn.oaistatic.com/_next/static/cXh69klOLzS0Gy2joLDRS/_ssgManifest.js?dpl=453ebaec0d44c2decab71692e1bfe39be35a24b3")
+    # cached_dpl = "dpl=453ebaec0d44c2decab71692e1bfe39be35a24b3"
+    # config = get_config("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36")
+    # get_requirements_token(config)
