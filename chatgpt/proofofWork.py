@@ -462,7 +462,10 @@ def get_answer_token(seed, diff, config):
     return "gAAAAAB" + answer, solved
 
 
-def generate_answer(seed, diff, config):
+def generate_answer(seed, diff, config, timeout_seconds=2):
+    # 记录开始时间
+    start_time = time.time()
+
     diff_len = len(diff)
     seed_encoded = seed.encode()
     static_config_part1 = (json.dumps(config[:3], separators=(',', ':'), ensure_ascii=False)[:-1] + ',').encode()
@@ -471,7 +474,15 @@ def generate_answer(seed, diff, config):
 
     target_diff = bytes.fromhex(diff)
 
+    # 设置默认返回值
+    default_result = "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + pybase64.b64encode(f'"{seed}"'.encode()).decode(), False
+
     for i in range(500000):
+        # 检查是否超过超时时间
+        if i % 100 == 0 and time.time() - start_time > timeout_seconds:
+            logger.info(f"generate_answer: operation timed out after {timeout_seconds} seconds.")
+            return default_result
+
         dynamic_json_i = str(i).encode()
         dynamic_json_j = str(i >> 1).encode()
         final_json_bytes = static_config_part1 + dynamic_json_i + static_config_part2 + dynamic_json_j + static_config_part3
@@ -480,7 +491,7 @@ def generate_answer(seed, diff, config):
         if hash_value[:diff_len] <= target_diff:
             return base_encode.decode(), True
 
-    return "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + pybase64.b64encode(f'"{seed}"'.encode()).decode(), False
+    return default_result
 
 
 def get_requirements_token(config):
