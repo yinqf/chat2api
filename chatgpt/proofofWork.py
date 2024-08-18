@@ -482,7 +482,7 @@ def generate_answer(seed, diff, config, timeout_seconds=1):
             # 每500次检查一次时间
             elapsed_time = time.time() - start_time
             if elapsed_time > timeout_seconds:
-                logger.info(f"generate_answer: operation timed out after {timeout_seconds} seconds.")
+                logger.info(f"generate_answer: operation timed out after {timeout_seconds} seconds at iteration {i}.")
                 return default_result
 
         # 准备动态部分
@@ -494,7 +494,6 @@ def generate_answer(seed, diff, config, timeout_seconds=1):
         base_encode = pybase64.b64encode(final_json_bytes)
         hash_value = hashlib.sha3_512(seed_encoded + base_encode).digest()
         if hash_value[:diff_len] <= target_diff:
-            logger.info(f"generate_answer_num:  {i} ")
             return base_encode.decode(), True
 
     return default_result
