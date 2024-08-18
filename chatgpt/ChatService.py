@@ -21,7 +21,7 @@ from utils.config import proxy_url_list, chatgpt_base_url_list, ark0se_token_url
 
 class ChatService:
     def __init__(self, origin_token=None):
-        self.user_agent = random.choice(user_agents_list) if user_agents_list else "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        self.user_agent = random.choice(user_agents_list) if user_agents_list else "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
         self.req_token = get_req_token(origin_token)
         self.chat_token = "gAAAAAB"
         self.s = None
