@@ -5,7 +5,6 @@ import uuid
 
 from fastapi import HTTPException
 from starlette.concurrency import run_in_threadpool
-from fake_useragent import UserAgent
 
 from api.files import get_image_size, get_file_extension, determine_file_use_case
 from api.models import model_proxy
@@ -22,11 +21,11 @@ from utils.config import proxy_url_list, chatgpt_base_url_list, ark0se_token_url
 
 class ChatService:
     def __init__(self, origin_token=None):
-        ua = UserAgent(min_version=120.0)
-        user_agent = ua.random
-        #self.user_agent = random.choice(user_agents_list) if user_agents_list else "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-        logger.info(f"user_agent:{user_agent}")
-        self.user_agent = user_agent
+        #ua = UserAgent(min_version=120.0)
+        #user_agent = ua.random
+        self.user_agent = random.choice(user_agents_list) if user_agents_list else "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+        #logger.info(f"user_agent:{user_agent}")
+        #self.user_agent = user_agent
         self.req_token = get_req_token(origin_token)
         self.chat_token = "gAAAAAB"
         self.s = None
