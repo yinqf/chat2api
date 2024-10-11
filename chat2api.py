@@ -1,9 +1,10 @@
 import asyncio
 import types
 import warnings
+import random
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI, Request, Depends, HTTPException, Form
+from fastapi import FastAPI, Request, Depends, HTTPException, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -18,6 +19,8 @@ from chatgpt.reverseProxy import chatgpt_reverse_proxy
 from utils.Logger import logger
 from utils.config import api_prefix, scheduled_refresh
 from utils.retry import async_retry
+from utils.Client import Client
+from utils.config import proxy_url_list
 
 warnings.filterwarnings("ignore")
 
@@ -133,6 +136,29 @@ async def upload_post():
 async def error_tokens():
     error_tokens_list = list(set(globals.error_token_list))
     return {"status": "success", "error_tokens": error_tokens_list}
+
+
+@app.post("/oauth/token")
+async def proxy_oauth_token(request: Request):
+    data = await request.json()
+    client = Client(proxy=random.choice(proxy_url_list) if proxy_url_list else None)
+
+    try:
+        # 将请求转发到OpenAI OAuth端点
+        r = await client.post("https://auth0.openai.com/oauth/token", json=data, timeout=5)
+
+        # 直接返回OpenAI的响应
+        return Response(
+            content=r.content,
+            status_code=r.status_code,
+            headers={key: value for key, value in r.headers.items() if key.lower() != "content-encoding"}
+        )
+    except Exception as e:
+        logger.error(f"无法代理OAuth令牌请求：{str(e)}")
+        raise HTTPException(status_code=500, detail="无法代理OAuth令牌请求。")
+    finally:
+        await client.close()
+        del client
 
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH", "TRACE"])
