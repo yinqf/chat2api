@@ -30,7 +30,6 @@ impersonate_list = [
     "chrome119",
     "chrome120",
     "chrome123",
-    "chrome124",
     "edge99",
     "edge101",
 ]
@@ -60,6 +59,7 @@ else:
     with open(TOKENS_FILE, "w", encoding="utf-8") as f:
         pass
 
+
 if os.path.exists(ERROR_TOKENS_FILE):
     with open(ERROR_TOKENS_FILE, "r", encoding="utf-8") as f:
         for line in f:
@@ -71,17 +71,20 @@ else:
 
 if os.path.exists(USER_AGENTS_FILE):
     with open(USER_AGENTS_FILE, "r", encoding="utf-8") as f:
-        user_agent_map = json.load(f)
+        try:
+            user_agent_map = json.load(f)
+        except json.JSONDecodeError:
+            user_agent_map = {}
     # token数量变化时，更新ua
     if len(user_agent_map.keys()) != len(token_list):
         new_tokens = list(set(token_list) - user_agent_map.keys())
         for token in new_tokens:
             ua = ua_generator.generate(device='desktop', browser=('chrome', 'edge'), platform=('windows', 'macos'))
             ua_dict = {
-                "User-Agent": ua.text,
-                "Sec-Ch-Ua-Platform": ua.platform,
-                "Sec-Ch-Ua": ua.ch.brands,
-                "Sec-Ch-Ua-Mobile": ua.ch.mobile,
+                "user-agent": ua.text,
+                "sec-ch-ua-platform": ua.platform,
+                "sec-ch-ua": ua.ch.brands,
+                "sec-ch-ua-mobile": ua.ch.mobile,
                 "impersonate": random.choice(impersonate_list),
             }
             user_agent_map[token] = ua_dict
@@ -91,10 +94,10 @@ else:
     for token in token_list:
         ua = ua_generator.generate(device='desktop', browser=('chrome', 'edge'), platform=('windows', 'macos'))
         ua_dict = {
-            "User-Agent": ua.text,
-            "Sec-Ch-Ua-Platform": ua.platform,
-            "Sec-Ch-Ua": ua.ch.brands,
-            "Sec-Ch-Ua-Mobile": ua.ch.mobile,
+            "user-agent": ua.text,
+            "sec-ch-ua-platform": ua.platform,
+            "sec-ch-ua": ua.ch.brands,
+            "sec-ch-ua-mobile": ua.ch.mobile,
             "impersonate": random.choice(impersonate_list),
         }
         user_agent_map[token] = ua_dict

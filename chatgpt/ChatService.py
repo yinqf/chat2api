@@ -37,7 +37,7 @@ class ChatService:
         self.req_token = get_req_token(origin_token)
         self.ua = get_ua(self.req_token)
         self.user_agent = self.ua.get(
-            "User-Agent",
+            "user-agent",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
         )
         self.chat_token = "gAAAAAB"
@@ -95,22 +95,22 @@ class ChatService:
         self.chat_request = None
 
         self.base_headers = {
-            'Accept': '*/*',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Content-Type': 'application/json',
-            'Oai-Device-Id': self.oai_device_id,
-            'Oai-Language': 'en-US',
-            'Origin': self.host_url,
-            'Priority': 'u=1, i',
-            'Referer': f'{self.host_url}/',
-            'Sec-Ch-Ua': self.ua.get("Sec-Ch-Ua", '"Chromium";v="124", "Microsoft Edge";v="124", "Not-A.Brand";v="99"'),
-            'Sec-Ch-Ua-Mobile': self.ua.get("Sec-Ch-Ua-Mobile", "?0"),
-            'Sec-Ch-Ua-Platform': self.ua.get("Sec-Ch-Ua-Platform", '"Windows"'),
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'User-Agent': self.user_agent,
+            'accept': '*/*',
+            'accept-encoding': 'gzip, deflate, br, zstd',
+            'accept-language': 'en-US,en;q=0.9',
+            'content-type': 'application/json',
+            'oai-device-id': self.oai_device_id,
+            'oai-language': 'en-US',
+            'origin': self.host_url,
+            'priority': 'u=1, i',
+            'referer': f'{self.host_url}/',
+            'sec-ch-ua': self.ua.get("sec-ch-ua", '"Chromium";v="124", "Microsoft Edge";v="124", "Not-A.Brand";v="99"'),
+            'sec-ch-ua-mobile': self.ua.get("sec-ch-ua-mobile", "?0"),
+            'sec-ch-ua-platform': self.ua.get("sec-ch-ua-platform", '"Windows"'),
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': self.user_agent
         }
         if self.access_token:
             self.base_url = self.host_url + "/backend-api"
@@ -281,22 +281,22 @@ class ChatService:
         self.chat_headers = self.base_headers.copy()
         self.chat_headers.update(
             {
-                'Accept': 'text/event-stream',
-                'Openai-Sentinel-Chat-Requirements-Token': self.chat_token,
-                'Openai-Sentinel-Proof-Token': self.proof_token,
+                'accept': 'text/event-stream',
+                'openai-sentinel-chat-requirements-token': self.chat_token,
+                'openai-sentinel-proof-token': self.proof_token,
             }
         )
         if self.ark0se_token:
-            self.chat_headers['Openai-Sentinel-Ark' + 'ose-Token'] = self.ark0se_token
+            self.chat_headers['openai-sentinel-ark' + 'ose-token'] = self.ark0se_token
 
         if self.turnstile_token:
-            self.chat_headers['Openai-Sentinel-Turnstile-Token'] = self.turnstile_token
+            self.chat_headers['openai-sentinel-turnstile-token'] = self.turnstile_token
 
         if conversation_only:
-            self.chat_headers.pop('Openai-Sentinel-Chat-Requirements-Token', None)
-            self.chat_headers.pop('Openai-Sentinel-Proof-Token', None)
-            self.chat_headers.pop('Openai-Sentinel-Ark' + 'ose-Token', None)
-            self.chat_headers.pop('Openai-Sentinel-Turnstile-Token', None)
+            self.chat_headers.pop('openai-sentinel-chat-requirements-token', None)
+            self.chat_headers.pop('openai-sentinel-proof-token', None)
+            self.chat_headers.pop('openai-sentinel-ark' + 'ose-token', None)
+            self.chat_headers.pop('openai-sentinel-turnstile-token', None)
 
         if "gpt-4-gizmo" in self.origin_model:
             gizmo_id = self.origin_model.split("gpt-4-gizmo-")[-1]
@@ -387,21 +387,23 @@ class ChatService:
                 download_url = r.json().get('download_url')
                 return download_url
             else:
-                return ""
-        except HTTPException:
+                raise HTTPException(status_code=r.status_code, detail=r.text)
+        except Exception as e:
+            logger.error(f"Failed to get download url: {e}")
             return ""
 
     async def get_download_url_from_upload(self, file_id):
         url = f"{self.base_url}/files/{file_id}/uploaded"
         headers = self.base_headers.copy()
         try:
-            r = await self.s.post(url, headers=headers, json={}, timeout=5)
+            r = await self.s.post(url, headers=headers, json={}, timeout=30)
             if r.status_code == 200:
                 download_url = r.json().get('download_url')
                 return download_url
             else:
-                return ""
-        except HTTPException:
+                raise HTTPException(status_code=r.status_code, detail=r.text)
+        except Exception as e:
+            logger.error(f"Failed to get download url from upload: {e}")
             return ""
 
     async def get_upload_url(self, file_name, file_size, use_case="multimodal"):
@@ -421,27 +423,30 @@ class ChatService:
                 logger.info(f"file_id: {file_id}, upload_url: {upload_url}")
                 return file_id, upload_url
             else:
-                return "", ""
-        except HTTPException:
+                raise HTTPException(status_code=r.status_code, detail=r.text)
+        except Exception as e:
+            logger.error(f"Failed to get upload url: {e}")
             return "", ""
 
     async def upload(self, upload_url, file_content, mime_type):
         headers = self.base_headers.copy()
         headers.update(
             {
-                'Accept': 'application/json, text/plain, */*',
-                'Content-Type': mime_type,
-                'X-Ms-Blob-Type': 'BlockBlob',
-                'X-Ms-Version': '2020-04-08',
+                'accept': 'application/json, text/plain, */*',
+                'content-type': mime_type,
+                'x-ms-blob-type': 'BlockBlob',
+                'x-ms-version': '2020-04-08',
             }
         )
         headers.pop('Authorization', None)
         try:
-            r = await self.s.put(upload_url, headers=headers, data=file_content)
+            r = await self.s.put(upload_url, headers=headers, data=file_content, timeout=60)
             if r.status_code == 201:
                 return True
-            return False
-        except Exception:
+            else:
+                raise HTTPException(status_code=r.status_code, detail=r.text)
+        except Exception as e:
+            logger.error(f"Failed to upload file: {e}")
             return False
 
     async def upload_file(self, file_content, mime_type):
@@ -476,12 +481,6 @@ class ChatService:
                     }
                     logger.info(f"File_meta: {file_meta}")
                     return file_meta
-                else:
-                    logger.error("Failed to get download url")
-            else:
-                logger.error("Failed to upload file")
-        else:
-            logger.error("Failed to get upload url")
 
     async def check_upload(self, file_id):
         url = f'{self.base_url}/files/{file_id}'
