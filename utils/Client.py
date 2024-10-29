@@ -1,7 +1,4 @@
-import random
-
 from curl_cffi.requests import AsyncSession
-
 
 class Client:
     def __init__(self, proxy=None, timeout=15, verify=True, impersonate='safari17_0'):
@@ -9,8 +6,10 @@ class Client:
         self.timeout = timeout
         self.verify = verify
 
-        self.impersonate = impersonate
+        self.impersonate = 'safari17_0'
         # impersonate=self.impersonate
+
+        # logger.info(f"Client Request impersonate: {self.impersonate}")
 
         # self.ja3 = ""
         # self.akamai = ""

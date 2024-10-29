@@ -47,7 +47,7 @@ class ChatService:
     async def set_dynamic_data(self, data):
         if self.req_token:
             #logger.info(f"Request impersonate: {self.ua.get('impersonate')}")
-            #logger.info(f"Request ua:{self.user_agent}")
+            logger.info(f"Request ua:{self.user_agent}")
             #logger.info(f"Request token: {self.req_token}")
             req_len = len(self.req_token.split(","))
             if req_len == 1:
@@ -83,7 +83,7 @@ class ChatService:
         self.host_url = random.choice(chatgpt_base_url_list) if chatgpt_base_url_list else "https://chatgpt.com"
         self.ark0se_token_url = random.choice(ark0se_token_url_list) if ark0se_token_url_list else None
 
-        self.s = Client(proxy=self.proxy_url, impersonate=self.ua.get("impersonate", "safari15_3"))
+        self.s = Client(proxy=self.proxy_url, impersonate=self.ua.get("impersonate", "safari17_0"))
 
         self.oai_device_id = str(uuid.uuid4())
         self.persona = None
@@ -224,7 +224,7 @@ class ChatService:
                     if not self.ark0se_token_url:
                         raise HTTPException(status_code=403, detail="Ark0se service required")
                     ark0se_dx = ark0se.get("dx")
-                    ark0se_client = Client(impersonate=self.ua.get("impersonate", "safari15_3"))
+                    ark0se_client = Client(impersonate=self.ua.get("impersonate", "safari17_0"))
                     try:
                         r2 = await ark0se_client.post(
                             url=self.ark0se_token_url, json={"blob": ark0se_dx, "method": ark0se_method}, timeout=15
