@@ -1,8 +1,9 @@
 import asyncio
+import random
 import types
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import Request, Depends, HTTPException, Form
+from fastapi import Request, Depends, HTTPException, Form, Response
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from starlette.background import BackgroundTask
 
@@ -10,8 +11,9 @@ import utils.globals as globals
 from app import templates, oauth2_scheme, app
 from chatgpt.ChatService import ChatService
 from chatgpt.authorization import refresh_all_tokens
+from utils.Client import Client
 from utils.Logger import logger
-from utils.configs import api_prefix, scheduled_refresh
+from utils.configs import api_prefix, scheduled_refresh, proxy_url_list
 from utils.retry import async_retry
 
 scheduler = AsyncIOScheduler()
@@ -43,9 +45,17 @@ async def to_send_conversation(request_data, req_token):
 
 async def process(request_data, req_token):
     chat_service = await to_send_conversation(request_data, req_token)
-    await chat_service.prepare_send_conversation()
-    res = await chat_service.send_conversation()
-    return chat_service, res
+    try:
+        await chat_service.prepare_send_conversation()
+        res = await chat_service.send_conversation()
+        return chat_service, res
+    except HTTPException as e:
+        await chat_service.close_client()
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        await chat_service.close_client()
+        logger.error(f"Server error, {str(e)}")
+        raise HTTPException(status_code=500, detail="Server error")
 
 
 @app.post(f"/{api_prefix}/v1/chat/completions" if api_prefix else "/v1/chat/completions")
@@ -120,3 +130,25 @@ async def add_token(token: str):
     logger.info(f"Token count: {len(globals.token_list)}, Error token count: {len(globals.error_token_list)}")
     tokens_count = len(set(globals.token_list) - set(globals.error_token_list))
     return {"status": "success", "tokens_count": tokens_count}
+
+@app.post("/oauth/token")
+async def proxy_oauth_token(request: Request):
+    data = await request.json()
+    client = Client(proxy=random.choice(proxy_url_list) if proxy_url_list else None)
+
+    try:
+        # 将请求转发到OpenAI OAuth端点
+        r = await client.post("https://auth0.openai.com/oauth/token", json=data, timeout=5)
+
+        # 直接返回OpenAI的响应
+        return Response(
+            content=r.content,
+            status_code=r.status_code,
+            headers={key: value for key, value in r.headers.items() if key.lower() != "content-encoding"}
+        )
+    except Exception as e:
+        logger.error(f"无法代理OAuth令牌请求：{str(e)}")
+        raise HTTPException(status_code=500, detail="无法代理OAuth令牌请求。")
+    finally:
+        await client.close()
+        del client
