@@ -9,7 +9,7 @@ class Client:
         self.timeout = timeout
         self.verify = verify
 
-        self.impersonate = impersonate
+        self.impersonate = 'safari17_0'
         # impersonate=self.impersonate
 
         # self.ja3 = ""
