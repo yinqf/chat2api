@@ -161,7 +161,7 @@ async def stream_response(service, response, model, max_tokens):
     async for chunk in response:
         chunk = chunk.decode("utf-8")
         if end:
-            logger.info(f"Response Model: {model_slug}")
+            #logger.info(f"Response Model: {model_slug}")
             yield "data: [DONE]\n\n"
             break
         try:
@@ -306,7 +306,7 @@ async def stream_response(service, response, model, max_tokens):
                 completion_tokens += 1
                 yield f"data: {json.dumps(chunk_new_data)}\n\n"
             elif chunk.startswith("data: [DONE]"):
-                logger.info(f"Response Model: {model_slug}")
+                #logger.info(f"Response Model: {model_slug}")
                 yield "data: [DONE]\n\n"
             else:
                 continue

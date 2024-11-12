@@ -1,11 +1,12 @@
+import time
 import warnings
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
-
+from utils.Logger import logger
 from utils.configs import enable_gateway, api_prefix
 
 warnings.filterwarnings("ignore")
@@ -31,6 +32,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 自定义中间件记录接口执行时长，并以特定格式输出日志
+@app.middleware("http")
+async def log_execution_time(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+
+    # 构建符合格式的日志输出
+    client_info = f"{request.client.host}:{request.client.port}"
+    log_message = (
+        f"{client_info}: {request.method} {request.url.path} "
+        f"{response.status_code} OK - {duration:.2f} seconds"
+    )
+    logger.info(log_message)
+
+    return response
+
 templates = Jinja2Templates(directory="templates")
 security_scheme = HTTPBearer()
 
@@ -53,5 +71,5 @@ else:
 
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=5005)
+    uvicorn.run("app:app", host="0.0.0.0", port=5005, access_log=False)
     # uvicorn.run("app:app", host="0.0.0.0", port=5005, ssl_keyfile="key.pem", ssl_certfile="cert.pem")
