@@ -316,7 +316,7 @@ class ChatService:
         else:
             conversation_mode = {"kind": "primary_assistant"}
 
-        logger.info(f"Model mapping: {self.origin_model} -> {self.req_model}")
+        #logger.info(f"Model mapping: {self.origin_model} -> {self.req_model}")
         self.chat_request = {
             "action": "next",
             "conversation_mode": conversation_mode,
