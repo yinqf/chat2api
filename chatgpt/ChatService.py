@@ -248,12 +248,22 @@ class ChatService:
                     if proofofwork_diff <= pow_difficulty:
                         raise HTTPException(status_code=403, detail=f"Proof of work difficulty too high: {proofofwork_diff}")
                     proofofwork_seed = proofofwork.get("seed")
-                    self.proof_token, solved = await run_in_threadpool(
-                        get_answer_token, proofofwork_seed, proofofwork_diff, config
-                    )
-                    if not solved:
-                        raise HTTPException(status_code=403, detail="Failed to solve proof of work")
 
+                    req_type = self.data.get("req_type","completions")
+                    if req_type != "requirements":
+                        self.proof_token, solved = await run_in_threadpool(
+                            get_answer_token, proofofwork_seed, proofofwork_diff, config
+                        )
+                        if not solved:
+                            raise HTTPException(status_code=403, detail="Failed to solve proof of work")
+                    else:
+                        self.requirement_data = {
+                            "proofofwork_seed": proofofwork_seed,
+                            "proofofwork_diff": proofofwork_diff,
+                            "config": config,
+                            "oai_device_id": self.oai_device_id,
+                            "chat_token": resp.get('token')
+                        }
                 self.chat_token = resp.get('token')
                 if not self.chat_token:
                     raise HTTPException(status_code=403, detail=f"Failed to get chat token: {r.text}")
@@ -285,6 +295,7 @@ class ChatService:
                 'accept': 'text/event-stream',
                 'openai-sentinel-chat-requirements-token': self.chat_token,
                 'openai-sentinel-proof-token': self.proof_token,
+                'oai-device-id': self.oai_device_id,
             }
         )
         if self.ark0se_token:

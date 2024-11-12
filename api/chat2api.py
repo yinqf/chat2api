@@ -30,11 +30,16 @@ async def app_start():
         asyncio.get_event_loop().call_later(0, lambda: asyncio.create_task(refresh_all_tokens(force_refresh=False)))
 
 
-async def to_send_conversation(request_data, req_token):
+async def to_send_conversation(request_data, req_token, sentinel_token):
     chat_service = ChatService(req_token)
     try:
         await chat_service.set_dynamic_data(request_data)
-        await chat_service.get_chat_requirements()
+        if sentinel_token and sentinel_token["chat_token"] and sentinel_token["proof_token"] and sentinel_token["oai_device_id"]:
+            chat_service.chat_token = sentinel_token["chat_token"]
+            chat_service.proof_token = sentinel_token["proof_token"]
+            chat_service.oai_device_id = sentinel_token["oai_device_id"]
+        else:
+            await chat_service.get_chat_requirements()
         return chat_service
     except HTTPException as e:
         await chat_service.close_client()
@@ -45,8 +50,8 @@ async def to_send_conversation(request_data, req_token):
         raise HTTPException(status_code=500, detail="Server error")
 
 
-async def process(request_data, req_token):
-    chat_service = await to_send_conversation(request_data, req_token)
+async def process(request_data, req_token, sentinel_token):
+    chat_service = await to_send_conversation(request_data, req_token, sentinel_token)
     try:
         await chat_service.prepare_send_conversation()
         res = await chat_service.send_conversation()
@@ -64,10 +69,20 @@ async def process(request_data, req_token):
 async def send_conversation(request: Request, credentials: HTTPAuthorizationCredentials = Security(security_scheme)):
     req_token = credentials.credentials
     try:
+        # 从请求头中读取数据
+        chat_token = request.headers.get("openai-sentinel-chat-requirements-token", None)
+        proof_token = request.headers.get("openai-sentinel-proof-token", None)
+        oai_device_id = request.headers.get("oai-device-id", None)
+        sentinel_token = {
+            "chat_token": chat_token,
+            "proof_token": proof_token,
+            "oai_device_id": oai_device_id
+        }
+
         request_data = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail={"error": "Invalid JSON body"})
-    chat_service, res = await async_retry(process, request_data, req_token)
+    chat_service, res = await async_retry(process, request_data, req_token, sentinel_token)
     try:
         if isinstance(res, types.AsyncGeneratorType):
             background = BackgroundTask(chat_service.close_client)
@@ -155,3 +170,32 @@ async def proxy_oauth_token(request: Request):
     finally:
         await client.close()
         del client
+
+
+@app.post(f"/{api_prefix}/backend-api/sentinel/chat-requirements" if api_prefix else "/backend-api/sentinel/chat-requirements")
+async def chat_requirements(credentials: HTTPAuthorizationCredentials = Security(security_scheme)):
+    req_token = credentials.credentials
+    request_data = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {
+                "role": "user",
+                "content": "Say this is a test!"
+            }
+        ],
+        "req_type": "requirements"
+    }
+    chat_service = await async_retry(to_send_conversation, request_data, req_token, None)
+    try:
+        background = BackgroundTask(chat_service.close_client)
+        return JSONResponse(chat_service.requirement_data, media_type="application/json", background=background)
+    except HTTPException as e:
+        await chat_service.close_client()
+        if e.status_code == 500:
+            logger.error(f"Server error, {str(e)}")
+            raise HTTPException(status_code=500, detail="Server error")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        await chat_service.close_client()
+        logger.error(f"Server error, {str(e)}")
+        raise HTTPException(status_code=500, detail="Server error")
