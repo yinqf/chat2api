@@ -33,6 +33,7 @@ from utils.configs import (
 class ChatService:
     def __init__(self, origin_token=None):
         # self.user_agent = random.choice(user_agents_list) if user_agents_list else "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+        self.test = None
         self.req_token = get_req_token(origin_token)
         self.chat_token = "gAAAAAB"
         self.s = None
