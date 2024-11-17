@@ -38,6 +38,7 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
             chat_service.chat_token = sentinel_token["chat_token"]
             chat_service.proof_token = sentinel_token["proof_token"]
             chat_service.oai_device_id = sentinel_token["oai_device_id"]
+            logger.info(f"completions - chat_service.oai_device_id: {chat_service.oai_device_id}")
         else:
             await chat_service.get_chat_requirements()
         return chat_service
@@ -187,6 +188,7 @@ async def chat_requirements(credentials: HTTPAuthorizationCredentials = Security
     }
     chat_service = await async_retry(to_send_conversation, request_data, req_token, None)
     try:
+        logger.info(f"chat_requirements - chat_service.oai_device_id: {chat_service.oai_device_id}")
         background = BackgroundTask(chat_service.close_client)
         return JSONResponse(chat_service.requirement_data, media_type="application/json", background=background)
     except HTTPException as e:
