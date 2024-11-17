@@ -38,6 +38,8 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
             chat_service.chat_token = sentinel_token["chat_token"]
             chat_service.proof_token = sentinel_token["proof_token"]
             chat_service.oai_device_id = sentinel_token["oai_device_id"]
+            chat_service.base_headers['oai-device-id'] = sentinel_token["oai_device_id"]
+            chat_service.persona = 'chatgpt-freeaccount'
         else:
             await chat_service.get_chat_requirements()
         return chat_service
