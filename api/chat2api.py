@@ -12,6 +12,7 @@ from starlette.background import BackgroundTask
 import utils.globals as globals
 from app import app, templates, security_scheme
 from chatgpt.ChatService import ChatService
+from chatgpt.ChatServiceCache import ChatServiceCache
 from chatgpt.authorization import refresh_all_tokens
 from utils.Client import Client
 from utils.Logger import logger
@@ -20,9 +21,12 @@ from utils.retry import async_retry
 
 scheduler = AsyncIOScheduler()
 
+# 创建缓存实例，6分钟TTL，1分钟清理间隔
+chat_service_cache = ChatServiceCache(ttl=360, cleanup_interval=60)
 
 @app.on_event("startup")
 async def app_start():
+    asyncio.create_task(chat_service_cache.start_cleanup_loop())
     if scheduled_refresh:
         scheduler.add_job(id='refresh', func=refresh_all_tokens, trigger='cron', hour=3, minute=0, day='*/2',
                           kwargs={'force_refresh': True})
@@ -31,23 +35,43 @@ async def app_start():
 
 
 async def to_send_conversation(request_data, req_token, sentinel_token):
-    chat_service = ChatService(req_token)
+    chat_service = None
     try:
-        await chat_service.set_dynamic_data(request_data)
-        if sentinel_token and sentinel_token["chat_token"] and sentinel_token["proof_token"] and sentinel_token["oai_device_id"]:
-            chat_service.chat_token = sentinel_token["chat_token"]
-            chat_service.proof_token = sentinel_token["proof_token"]
-            chat_service.oai_device_id = sentinel_token["oai_device_id"]
-            chat_service.base_headers['oai-device-id'] = sentinel_token["oai_device_id"]
-            chat_service.persona = 'chatgpt-freeaccount'
+        if sentinel_token and sentinel_token.get("chat_token") and sentinel_token.get("proof_token") and sentinel_token.get("oai_device_id"):
+            oai_device_id = sentinel_token["oai_device_id"]
+            chat_service = chat_service_cache.get(oai_device_id)
+
+            if chat_service:
+                logger.info(f"get chat_requirements oai_device_id: {oai_device_id}")
+                chat_service.chat_token = sentinel_token["chat_token"]
+                chat_service.proof_token = sentinel_token["proof_token"]
+                chat_service.oai_device_id = oai_device_id
+                chat_service.base_headers['oai-device-id'] = oai_device_id
+                chat_service.persona = 'chatgpt-freeaccount'
+            else:
+                # 缓存未命中时，创建新的实例
+                chat_service = ChatService(req_token)
+                await chat_service.set_dynamic_data(request_data)
+                await chat_service.get_chat_requirements()
         else:
+            # 无 sentinel_token 时直接创建新的 ChatService 实例
+            chat_service = ChatService(req_token)
+            await chat_service.set_dynamic_data(request_data)
             await chat_service.get_chat_requirements()
+
+            if sentinel_token is None and chat_service.requirement_data:
+                oai_device_id = chat_service.oai_device_id
+                logger.info(f"add chat_requirements oai_device_id: {oai_device_id}")
+                chat_service_cache.set(oai_device_id, chat_service)
+
         return chat_service
     except HTTPException as e:
-        await chat_service.close_client()
+        if chat_service:
+            await chat_service.close_client()
         raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
-        await chat_service.close_client()
+        if chat_service:
+            await chat_service.close_client()
         logger.error(f"Server error, {str(e)}")
         raise HTTPException(status_code=500, detail="Server error")
 
@@ -189,8 +213,9 @@ async def chat_requirements(credentials: HTTPAuthorizationCredentials = Security
     }
     chat_service = await async_retry(to_send_conversation, request_data, req_token, None)
     try:
-        background = BackgroundTask(chat_service.close_client)
-        return JSONResponse(chat_service.requirement_data, media_type="application/json", background=background)
+        #background = BackgroundTask(chat_service.close_client)
+        #, background=background
+        return JSONResponse(chat_service.requirement_data, media_type="application/json")
     except HTTPException as e:
         await chat_service.close_client()
         if e.status_code == 500:
