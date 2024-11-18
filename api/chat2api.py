@@ -21,8 +21,8 @@ from utils.retry import async_retry
 
 scheduler = AsyncIOScheduler()
 
-# 创建缓存实例，6分钟TTL，1分钟清理间隔
-chat_service_cache = ChatServiceCache(ttl=360, cleanup_interval=60)
+# 创建缓存实例，8分钟TTL，1分钟清理间隔
+chat_service_cache = ChatServiceCache(ttl=480, cleanup_interval=60)
 
 @app.on_event("startup")
 async def app_start():
@@ -42,7 +42,7 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
             chat_service = chat_service_cache.get(oai_device_id)
 
             if chat_service:
-                logger.info(f"get chat_requirements oai_device_id: {oai_device_id}")
+                #logger.info(f"get chat_requirements oai_device_id: {oai_device_id}")
                 chat_service.chat_token = sentinel_token["chat_token"]
                 chat_service.proof_token = sentinel_token["proof_token"]
                 chat_service.oai_device_id = oai_device_id
@@ -61,7 +61,7 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
 
             if sentinel_token is None and chat_service.requirement_data:
                 oai_device_id = chat_service.oai_device_id
-                logger.info(f"add chat_requirements oai_device_id: {oai_device_id}")
+                #logger.info(f"add chat_requirements oai_device_id: {oai_device_id}")
                 chat_service_cache.set(oai_device_id, chat_service)
 
         return chat_service
