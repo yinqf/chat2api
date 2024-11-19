@@ -16,6 +16,10 @@ class ChatServiceCache:
         item = self.cache.pop(key, None)  # 获取并删除缓存项
         return item['value'] if item else None
 
+    def get_cache_size(self):
+        """返回缓存中当前剩余项的数量。"""
+        return len(self.cache)
+
     async def start_cleanup_loop(self):
         """定期清理过期缓存的循环任务。"""
         while True:

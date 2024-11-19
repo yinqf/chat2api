@@ -38,17 +38,26 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
     chat_service = None
     try:
         if sentinel_token and sentinel_token.get("chat_token") and sentinel_token.get("proof_token") and sentinel_token.get("oai_device_id"):
-            oai_device_id = sentinel_token["oai_device_id"]
+            oai_device_id = sentinel_token.get("oai_device_id")
             chat_service = chat_service_cache.get(oai_device_id)
 
             if chat_service:
-                #logger.info(f"get chat_requirements oai_device_id: {oai_device_id}")
-                chat_service.chat_token = sentinel_token["chat_token"]
-                chat_service.proof_token = sentinel_token["proof_token"]
+                logger.info(f"Retrieved chat requirements for oai_device_id: {oai_device_id}, current cache size: {chat_service_cache.get_cache_size()}")
+                chat_service.chat_token = sentinel_token.get("chat_token")
+                chat_service.proof_token = sentinel_token.get("proof_token")
                 chat_service.oai_device_id = oai_device_id
                 chat_service.base_headers['oai-device-id'] = oai_device_id
                 chat_service.persona = 'chatgpt-freeaccount'
+
+                chat_service.data = request_data
+                await chat_service.set_model()
+                chat_service.api_messages = request_data.get("messages", chat_service.api_messages)
+                chat_service.max_tokens = chat_service.data.get("max_tokens", 2147483647)
+                if not isinstance(chat_service.max_tokens, int):
+                    chat_service.max_tokens = 2147483647
+
             else:
+                logger.info(f"Cache retrieval failed for oai_device_id: {oai_device_id}")
                 # 缓存未命中时，创建新的实例
                 chat_service = ChatService(req_token)
                 await chat_service.set_dynamic_data(request_data)
