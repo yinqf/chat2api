@@ -22,7 +22,7 @@ from utils.retry import async_retry
 scheduler = AsyncIOScheduler()
 
 # 创建缓存实例，8分钟TTL，1分钟清理间隔
-chat_service_cache = ChatServiceCache(ttl=480, cleanup_interval=60)
+chat_service_cache = ChatServiceCache(ttl=60, cleanup_interval=30)
 
 @app.on_event("startup")
 async def app_start():

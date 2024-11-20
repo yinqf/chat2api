@@ -38,4 +38,5 @@ class ChatServiceCache:
         item = self.cache.pop(key, None)
         if item:
             await item['value'].close_client()
+            print(f"{key}  清理成功 剩余: {self.get_cache_size()}")
 
