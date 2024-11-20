@@ -235,3 +235,28 @@ async def chat_requirements(credentials: HTTPAuthorizationCredentials = Security
         await chat_service.close_client()
         logger.error(f"Server error, {str(e)}")
         raise HTTPException(status_code=500, detail="Server error")
+
+@app.post(f"/{api_prefix}/backend-api/sentinel/delete-requirements" if api_prefix else "/backend-api/sentinel/delete-requirements")
+async def delete_requirements(request: Request):
+    chat_service = None
+    try:
+        # 从请求头中读取数据
+        oai_device_id = request.headers.get("oai-device-id")
+        chat_service = chat_service_cache.get(oai_device_id)
+
+        if chat_service:
+            await chat_service.close_client()
+
+        return JSONResponse('success', media_type="application/json")
+
+    except HTTPException as e:
+        if chat_service:
+            await chat_service.close_client()
+        logger.error(f"HTTPException encountered: {str(e)}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+
+    except Exception as e:
+        if chat_service:
+            await chat_service.close_client()
+        logger.error(f"Unexpected server error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Server error")
