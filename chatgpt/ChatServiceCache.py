@@ -21,9 +21,11 @@ class ChatServiceCache:
         return len(self.cache)
 
     async def start_cleanup_loop(self):
+        print("开启缓存清理")
         """定期清理过期缓存的循环任务。"""
         while True:
             await asyncio.sleep(self.cleanup_interval)
+            print("开始清理")
             await self._cleanup_expired_items()
 
     async def _cleanup_expired_items(self):
