@@ -1,5 +1,6 @@
 import asyncio
 import time
+from utils.Logger import logger
 
 class ChatServiceCache:
     def __init__(self, ttl=360, cleanup_interval=60):
@@ -21,11 +22,11 @@ class ChatServiceCache:
         return len(self.cache)
 
     async def start_cleanup_loop(self):
-        print("开启缓存清理")
+        logger.info("开启缓存清理")
         """定期清理过期缓存的循环任务。"""
         while True:
             await asyncio.sleep(self.cleanup_interval)
-            print("开始清理")
+            logger.info("开始清理")
             await self._cleanup_expired_items()
 
     async def _cleanup_expired_items(self):
@@ -40,5 +41,5 @@ class ChatServiceCache:
         item = self.cache.pop(key, None)
         if item:
             await item['value'].close_client()
-            print(f"{key}  清理成功 剩余: {self.get_cache_size()}")
+            logger.info(f"{key}  清理成功 剩余: {self.get_cache_size()}")
 
