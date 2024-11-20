@@ -1,5 +1,8 @@
 import asyncio
+import gc
 import time
+import tracemalloc
+
 from utils.Logger import logger
 
 class ChatServiceCache:
@@ -28,6 +31,10 @@ class ChatServiceCache:
             await asyncio.sleep(self.cleanup_interval)
             logger.info("开始清理")
             await self._cleanup_expired_items()
+
+            gc.collect()
+            current, peak = tracemalloc.get_traced_memory()
+            logger.info(f"当前内存使用: {current / 1024 / 1024:.2f} MB, 峰值: {peak / 1024 / 1024:.2f} MB")
 
     async def _cleanup_expired_items(self):
         """清理所有过期的缓存项。"""
