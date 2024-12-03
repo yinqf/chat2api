@@ -67,7 +67,7 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
             await chat_service.get_chat_requirements()
 
             if sentinel_token is None and chat_service.requirement_data:
-                oai_device_id = chat_service.requirement_data.oai_device_id
+                oai_device_id = chat_service.requirement_data.get("oai_device_id")
                 #logger.info(f"add chat_requirements oai_device_id: {oai_device_id}")
                 chat_service_cache.set(oai_device_id, chat_service)
 
