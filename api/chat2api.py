@@ -21,8 +21,8 @@ from utils.retry import async_retry
 
 scheduler = AsyncIOScheduler()
 
-# 创建缓存实例，8分钟TTL，1分钟清理间隔
-chat_service_cache = ChatServiceCache(ttl=480, cleanup_interval=60)
+# 创建缓存实例，10分钟TTL，1分钟清理间隔
+chat_service_cache = ChatServiceCache(ttl=600, cleanup_interval=60)
 
 @app.on_event("startup")
 async def app_start():
@@ -45,8 +45,6 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
                 logger.info(f"Retrieved chat requirements for oai_device_id: {oai_device_id}, current cache size: {chat_service_cache.get_cache_size()}")
                 chat_service.chat_token = sentinel_token.get("chat_token")
                 chat_service.proof_token = sentinel_token.get("proof_token")
-                chat_service.oai_device_id = oai_device_id
-                chat_service.base_headers['oai-device-id'] = oai_device_id
                 chat_service.persona = 'chatgpt-freeaccount'
 
                 chat_service.data = request_data
@@ -69,7 +67,7 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
             await chat_service.get_chat_requirements()
 
             if sentinel_token is None and chat_service.requirement_data:
-                oai_device_id = chat_service.oai_device_id
+                oai_device_id = chat_service.requirement_data.oai_device_id
                 #logger.info(f"add chat_requirements oai_device_id: {oai_device_id}")
                 chat_service_cache.set(oai_device_id, chat_service)
 

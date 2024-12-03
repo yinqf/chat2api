@@ -258,7 +258,7 @@ class ChatService:
                             "proofofwork_seed": proofofwork_seed,
                             "proofofwork_diff": proofofwork_diff,
                             "config": config,
-                            "oai_device_id": self.oai_device_id,
+                            "oai_device_id": str(uuid.uuid4()),
                             "chat_token": resp.get('token')
                         }
                 self.chat_token = resp.get('token')
@@ -291,8 +291,7 @@ class ChatService:
             {
                 'accept': 'text/event-stream',
                 'openai-sentinel-chat-requirements-token': self.chat_token,
-                'openai-sentinel-proof-token': self.proof_token,
-                'oai-device-id': self.oai_device_id,
+                'openai-sentinel-proof-token': self.proof_token
             }
         )
         if self.ark0se_token:
