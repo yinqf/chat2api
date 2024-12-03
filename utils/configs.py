@@ -32,6 +32,9 @@ proxy_url = os.getenv('PROXY_URL', '').replace(' ', '')
 export_proxy_url = os.getenv('EXPORT_PROXY_URL', None)
 impersonate_list_str = os.getenv('IMPERSONATE', '[]')
 user_agents_list_str = os.getenv('USER_AGENTS', '[]')
+device_tuple_str = os.getenv('DEVICE_TUPLE', '()')
+browser_tuple_str = os.getenv('BROWSER_TUPLE', '()')
+platform_tuple_str = os.getenv('PLATFORM_TUPLE', '()')
 
 cf_file_url = os.getenv('CF_FILE_URL', None)
 turnstile_solver_url = os.getenv('TURNSTILE_SOLVER_URL', None)
@@ -45,6 +48,7 @@ upload_by_url = is_true(os.getenv('UPLOAD_BY_URL', False))
 check_model = is_true(os.getenv('CHECK_MODEL', False))
 scheduled_refresh = is_true(os.getenv('SCHEDULED_REFRESH', False))
 random_token = is_true(os.getenv('RANDOM_TOKEN', True))
+oai_language = os.getenv('OAI_LANGUAGE', 'zh-CN')
 
 authorization_list = authorization.split(',') if authorization else []
 chatgpt_base_url_list = chatgpt_base_url.split(',') if chatgpt_base_url else []
@@ -52,6 +56,9 @@ ark0se_token_url_list = ark0se_token_url.split(',') if ark0se_token_url else []
 proxy_url_list = proxy_url.split(',') if proxy_url else []
 impersonate_list = ast.literal_eval(impersonate_list_str)
 user_agents_list = ast.literal_eval(user_agents_list_str)
+device_tuple = ast.literal_eval(device_tuple_str)
+browser_tuple = ast.literal_eval(browser_tuple_str)
+platform_tuple = ast.literal_eval(platform_tuple_str)
 
 enable_gateway = is_true(os.getenv('ENABLE_GATEWAY', False))
 auto_seed = is_true(os.getenv('AUTO_SEED', True))
@@ -84,6 +91,7 @@ logger.info("UPLOAD_BY_URL:     " + str(upload_by_url))
 logger.info("CHECK_MODEL:       " + str(check_model))
 logger.info("SCHEDULED_REFRESH: " + str(scheduled_refresh))
 logger.info("RANDOM_TOKEN:      " + str(random_token))
+logger.info("OAI_LANGUAGE:      " + str(oai_language))
 logger.info("------------------------- Gateway --------------------------")
 logger.info("ENABLE_GATEWAY:    " + str(enable_gateway))
 logger.info("AUTO_SEED:         " + str(auto_seed))
