@@ -182,14 +182,13 @@ async def add_token(token: str):
     tokens_count = len(set(globals.token_list) - set(globals.error_token_list))
     return {"status": "success", "tokens_count": tokens_count}
 
-@app.post("/oauth/token")
-async def proxy_oauth_token(request: Request):
+async def forward_request(request: Request, endpoint: str):
     data = await request.json()
     client = Client(proxy=random.choice(proxy_url_list) if proxy_url_list else None)
 
     try:
         # 将请求转发到OpenAI OAuth端点
-        r = await client.post("https://auth0.openai.com/oauth/token", json=data, timeout=5)
+        r = await client.post(endpoint, json=data, timeout=5)
 
         # 直接返回OpenAI的响应
         return Response(
@@ -204,6 +203,13 @@ async def proxy_oauth_token(request: Request):
         await client.close()
         del client
 
+@app.post("/oauth/token")
+async def proxy_oauth_token(request: Request):
+    return await forward_request(request, "https://auth0.openai.com/oauth/token")
+
+@app.post("/api/accounts/oauth/token")
+async def proxy_oauth_token(request: Request):
+    return await forward_request(request, "https://auth.openai.com/api/accounts/oauth/token")
 
 @app.post(f"/{api_prefix}/backend-api/sentinel/chat-requirements" if api_prefix else "/backend-api/sentinel/chat-requirements")
 async def chat_requirements(credentials: HTTPAuthorizationCredentials = Security(security_scheme)):
