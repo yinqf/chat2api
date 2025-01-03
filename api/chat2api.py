@@ -185,12 +185,18 @@ async def add_token(token: str):
 async def forward_request(request: Request, endpoint: str):
     data = await request.json()
     client = Client(proxy=random.choice(proxy_url_list) if proxy_url_list else None)
-
     try:
-        # 将请求转发到OpenAI OAuth端点
-        r = await client.post(endpoint, json=data, timeout=5)
-
-        # 直接返回OpenAI的响应
+        headers = {
+            'accept': '*/*',
+            'accept-encoding': 'gzip, deflate, br, zstd',
+            'accept-language': 'en-US,en;q=0.9',
+            'content-type': 'application/json',
+            'priority': 'u=1, i',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin'
+        }
+        r = await client.post(endpoint, headers=headers, json=data, timeout=5)
         return Response(
             content=r.content,
             status_code=r.status_code,
