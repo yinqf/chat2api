@@ -16,7 +16,7 @@ from chatgpt.ChatServiceCache import ChatServiceCache
 from chatgpt.authorization import refresh_all_tokens
 from utils.Client import Client
 from utils.Logger import logger
-from utils.configs import api_prefix, scheduled_refresh, proxy_url_list
+from utils.configs import api_prefix, scheduled_refresh, proxy_url_list, remote_pow
 from utils.retry import async_retry
 
 scheduler = AsyncIOScheduler()
@@ -55,11 +55,15 @@ async def to_send_conversation(request_data, req_token, sentinel_token):
                     chat_service.max_tokens = 2147483647
 
             else:
-                logger.info(f"Cache retrieval failed for oai_device_id: {oai_device_id}")
-                # 缓存未命中时，创建新的实例
-                chat_service = ChatService(req_token)
-                await chat_service.set_dynamic_data(request_data)
-                await chat_service.get_chat_requirements()
+                if remote_pow:
+                    logger.error(f"Cache miss for oai_device_id: {oai_device_id}. Raising an exception.")
+                    raise HTTPException(status_code=500, detail="Cache miss")
+                else:
+                    logger.info(f"Cache miss for oai_device_id: {oai_device_id}, creating a new instance.")
+                    # 缓存未命中时，创建新的实例
+                    chat_service = ChatService(req_token)
+                    await chat_service.set_dynamic_data(request_data)
+                    await chat_service.get_chat_requirements()
         else:
             # 无 sentinel_token 时直接创建新的 ChatService 实例
             chat_service = ChatService(req_token)
@@ -106,6 +110,13 @@ async def send_conversation(request: Request, credentials: HTTPAuthorizationCred
         chat_token = request.headers.get("openai-sentinel-chat-requirements-token", None)
         proof_token = request.headers.get("openai-sentinel-proof-token", None)
         oai_device_id = request.headers.get("oai-device-id", None)
+
+        # 如果 remote_pow 为 True 并且其中一个参数为空，则抛出异常
+        if remote_pow:
+            if not chat_token or not proof_token or not oai_device_id:
+                logger.error(f"Missing one of the required headers: chat_token, proof_token, or oai_device_id.")
+                raise HTTPException(status_code=400, detail="Missing required headers: chat_token, proof_token, or oai_device_id")
+
         sentinel_token = {
             "chat_token": chat_token,
             "proof_token": proof_token,
@@ -113,8 +124,9 @@ async def send_conversation(request: Request, credentials: HTTPAuthorizationCred
         }
 
         request_data = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail={"error": "Invalid JSON body"})
+    except Exception as e:
+        error_message = f"Invalid JSON body: {str(e)}"
+        raise HTTPException(status_code=400, detail=error_message)
     chat_service, res = await async_retry(process, request_data, req_token, sentinel_token)
     try:
         if isinstance(res, types.AsyncGeneratorType):
