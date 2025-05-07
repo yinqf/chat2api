@@ -124,7 +124,7 @@ async def send_conversation(request: Request, credentials: HTTPAuthorizationCred
         }
 
         request_data = await request.json()
-        logger.info(f"request_data: {request_data}")
+        #logger.info(f"request_data: {request_data}")
     except Exception as e:
         error_message = f"Invalid JSON body: {str(e)}"
         raise HTTPException(status_code=400, detail=error_message)
