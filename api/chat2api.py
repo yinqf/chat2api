@@ -8,6 +8,7 @@ from fastapi import Request, HTTPException, Form, Security
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from starlette.background import BackgroundTask
+from curl_cffi import requests
 
 import utils.globals as globals
 from app import app, templates, security_scheme
@@ -24,8 +25,50 @@ scheduler = AsyncIOScheduler()
 # 创建缓存实例，10分钟TTL，1分钟清理间隔
 chat_service_cache = ChatServiceCache(ttl=600, cleanup_interval=60)
 
+
+async def check_proxy_ip():
+    """检查代理IP地址"""
+    if not proxy_url_list:
+        logger.info("没有配置代理，跳过代理IP检查")
+        return
+    
+    for i, proxy_url in enumerate(proxy_url_list):
+        try:
+            logger.info(f"正在检查代理 {i+1}/{len(proxy_url_list)}: {proxy_url}")
+            
+            # 设置代理
+            proxies = {
+                'http': proxy_url,
+                'https': proxy_url
+            }
+            
+            # 发送请求获取IP
+            headers = {
+                'User-Agent': 'curl/7.68.0',
+                'Accept': 'text/plain'
+            }
+            response = requests.get(
+                'https://ifconfig.co', 
+                proxies=proxies, 
+                headers=headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                proxy_ip = response.text.strip()
+                logger.info(f"代理 {proxy_url} 的出口IP: {proxy_ip}")
+            else:
+                logger.warning(f"代理 {proxy_url} 检查失败，状态码: {response.status_code}")
+                
+        except Exception as e:
+            logger.error(f"检查代理 {proxy_url} 时发生错误: {str(e)}")
+
+
 @app.on_event("startup")
 async def app_start():
+    # 检查代理IP
+    await check_proxy_ip()
+    
     asyncio.create_task(chat_service_cache.start_cleanup_loop())
     if scheduled_refresh:
         scheduler.add_job(id='refresh', func=refresh_all_tokens, trigger='cron', hour=3, minute=0, day='*/2',
