@@ -16,6 +16,7 @@ model_proxy = {
     "claude-3-opus": "claude-3-opus-20240229",
     "claude-3-sonnet": "claude-3-sonnet-20240229",
     "claude-3-haiku": "claude-3-haiku-20240307",
+    "gpt-5": "gpt-5"
 }
 
 model_system_fingerprint = {

@@ -168,6 +168,8 @@ class ChatService:
             self.req_model = "gpt-4"
         elif "gpt-3.5" in self.origin_model:
             self.req_model = "text-davinci-002-render-sha"
+        elif "gpt-5" in self.origin_model:
+            self.req_model = "gpt-5"
         elif "auto" in self.origin_model:
             self.req_model = "auto"
         else:
