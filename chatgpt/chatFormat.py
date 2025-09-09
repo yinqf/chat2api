@@ -161,7 +161,7 @@ async def stream_response(service, response, model, max_tokens):
     async for chunk in response:
         chunk = chunk.decode("utf-8")
         if end:
-            #logger.info(f"Response Model: {model_slug}")
+            logger.info(f"Response Model: {model_slug}")
             yield "data: [DONE]\n\n"
             break
         try:
