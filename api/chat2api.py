@@ -48,7 +48,7 @@ async def check_proxy_ip():
                 'Accept': 'text/plain'
             }
             response = requests.get(
-                'https://ifconfig.co', 
+                'https://ifconfig.me',
                 proxies=proxies, 
                 headers=headers,
                 timeout=10
