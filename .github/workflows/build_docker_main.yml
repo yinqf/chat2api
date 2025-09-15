@@ -54,7 +54,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: yinqf7437/chat2api
+          images: registry.cn-hongkong.aliyuncs.com/yinqf/chat2api
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ steps.get_version.outputs.version }}
